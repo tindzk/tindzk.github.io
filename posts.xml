@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+        <channel>
+          <title>tindzk's blog</title>
+          <description>Blog about Scala programming</description>
+          <link>http://nieradzik.me/</link>
+          <atom:link rel="self" type="application/rss+xml" href="http://nieradzik.me//posts.xml"></atom:link>
+          <dc:creator>Tim Nieradzik</dc:creator>
+          <dc:language>en-GB</dc:language>
+          <item>
+          <title>Introducing MetaWeb</title>
+          <description>HTML rendering library</description>
+          <pubDate>Sun, 30 Aug 2015 00:00:00 +0000</pubDate>
+          <link>http://nieradzik.me/metaweb.html</link>
+          <guid isPermaLink="true">http://nieradzik.me/metaweb.html</guid>
+        </item>
+        </channel>
+      </rss>
