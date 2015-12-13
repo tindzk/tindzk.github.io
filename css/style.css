@@ -62,7 +62,7 @@ html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abb
 
 /* Spacing */
 .post h1, h3, h4, h5, p, .post-body ul, #post-list li, pre {
-margin-bottom: 20px;
+margin-bottom: 5px;
 }
 
 /* Base */
@@ -252,7 +252,8 @@ em, i { font-style: italic; }
 }
 
 .post h2 {
-	margin-bottom: 40px;
+	margin-top: 20px;
+	margin-bottom: 5px;
 	  font: 300 24px/1.5 "Helvetica Neue",Helvetica,Arial,sans-serif;
 	  color: #111;
 }
@@ -276,6 +277,8 @@ em, i { font-style: italic; }
 	max-width: 400px;
 	margin-top: 2px;
 }
+
+.post h3 { margin-top: 20px; }
 
 h3, h4, h5 { color:#333; }
 
