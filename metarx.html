@@ -20,7 +20,7 @@
         <article class="post">
         <header>
           <h1>Introducing MetaRx</h1>
-          <h2 class="headline">December 12, 2015</h2>
+          <h2 class="headline">December 21, 2015</h2>
         </header>
         <section id="post-body">
           <p>As part of my Scala.js web framework <a href="https://widok.github.io/">Widok</a>, I experimented with data binding mechanisms. The idea is to bind variables such that they trigger changes in the user interface.</p><p>A couple of users requested to extract this functionality into a separate library, so <a href="https://github.com/MetaStack-pl/MetaRx">MetaRx</a> was born. MetaRx gets cross-compiled for the JVM and therefore may be used even in UI frameworks such as Swing. For instance, <a href="https://github.com/outr/sgine/">sgine</a> is a cross-platform UI framework which internally uses MetaRx for widget properties, animations and triggering recalculations.</p><p>MetaRx provides reactive counterparts for native data structures, such as variables, lists or maps. Their state is modelled as a stream of change objects, also called <i>deltas</i>. This design choice allows to effectively reduce the number of DOM updates. For example, when adding a row to a list, it would be wasteful to re-render it entirely. Instead, list operations get translated into atomic DOM updates.</p><h2 id="example">Example</h2><p>The following code example shows a reactive variable:

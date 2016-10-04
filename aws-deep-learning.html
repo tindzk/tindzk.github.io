@@ -20,7 +20,7 @@
         <article class="post">
         <header>
           <h1>Setting up AWS for Deep Learning</h1>
-          <h2 class="headline">October 10, 2016</h2>
+          <h2 class="headline">October 04, 2016</h2>
         </header>
         <section id="post-body">
           <p>This short article will show you how to set up an AWS instance based on Ubuntu Server 14.04 LTS. I found that most tutorials out there were either outdated or required unnecessary steps. So this is my attempt to provide a simple guide to configuring a minimal AWS instance.</p><p>We are going to install CUDA v7.5 and cuDNN v5.1, as well as TensorFlow, Theano and Keras.</p><h2 id="creating-instance-and-connecting">Creating instance and connecting</h2><p>We will start with creating a new GPU instance. Use the following AMI:
@@ -37,8 +37,8 @@ sudo dpkg -i cuda-repo-ubuntu1404_7.5-18_amd64.deb
 sudo apt-get update
 sudo apt-get upgrade -y
 sudo apt-get install -y cuda linux-source linux-image-extra-virtual</code></pre><p>We need to define the <span class="code">CUDA_HOME</span> environment variable which some frameworks require. Furthermore, we need to amend the user's environment variables for library and binary paths:</p><pre class="sourceCode shell"><code>echo 'export CUDA_HOME=/usr/local/cuda-7.5
-export LD_LIBRARY_PATH=CUDA_HOME/lib64
-export PATH=CUDA_HOMEPATH' &gt;&gt; ~/.bashrc</code></pre><p>The following commands will install cuDNN:
+export LD_LIBRARY_PATH=${CUDA_HOME}/lib64
+export PATH=${CUDA_HOME}/bin:${PATH}' &gt;&gt; ~/.bashrc</code></pre><p>The following commands will install cuDNN:
 
     </p><pre class="sourceCode shell"><code>wget http://developer.download.nvidia.com/compute/redist/cudnn/v5.1/cudnn-7.5-linux-x64-v5.1.tgz
 tar -xzf cudnn-7.5-linux-x64-*.tgz
