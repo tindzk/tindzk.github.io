@@ -1,16 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom">
         <channel>
           <title>tindzk's blog</title>
-          <description>Blog about Scala programming</description>
+          <description>Blog about Scala and Machine Learning</description>
           <link>http://nieradzik.me/</link>
-          <atom:link rel="self" type="application/rss+xml" href="http://nieradzik.me/posts.xml"></atom:link>
+          <atom:link type="application/rss+xml" rel="self" href="http://nieradzik.me/posts.xml"></atom:link>
           <dc:creator>Tim Nieradzik</dc:creator>
           <dc:language>en-GB</dc:language>
           <item>
+          <title>Setting up AWS for Deep Learning</title>
+          <description>Installing CUDA, cuDNN, TensorFlow, Theano and Keras on Ubuntu Server 14.04 LTS</description>
+          <pubDate>Tue, 4 Oct 2016 00:00:00 +0300</pubDate>
+          <link>http://nieradzik.me/aws-deep-learning.html</link>
+          <guid isPermaLink="true">http://nieradzik.me/aws-deep-learning.html</guid>
+        </item><item>
           <title>Introducing MetaRx</title>
           <description>Reactive data structures</description>
-          <pubDate>Mon, 21 Dec 2015 00:00:00 +0000</pubDate>
+          <pubDate>Mon, 21 Dec 2015 00:00:00 +0200</pubDate>
           <link>http://nieradzik.me/metarx.html</link>
           <guid isPermaLink="true">http://nieradzik.me/metarx.html</guid>
         </item>

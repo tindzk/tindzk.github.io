@@ -1,0 +1,89 @@
+<!DOCTYPE html><html lang="en-GB">
+        <head>
+          <title>tindzk's blog - Setting up AWS for Deep Learning</title>
+          <meta charset="utf-8"/>
+          <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible"/>
+          <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+          <meta content="MetaDocs v0.1.2-SNAPSHOT" name="generator"/>
+          <link href="images/favicon.ico" rel="shortcut icon"/>
+          <link href="posts.xml" title="tindzk's blog" type="application/rss+xml" rel="alternate"/>
+          <link href="css/style.css" type="text/css" rel="stylesheet"/><link href="css/highlight.css" type="text/css" rel="stylesheet"/>
+        </head>
+
+        <body>
+          <nav class="main-nav">
+    <a href="index.html" id="index">Index </a>
+    <a href="http://about.me/tim.nieradzik">About </a>
+    <a href="http://github.com/tindzk">GitHub </a>
+    <a href="posts.xml" class="cta">Subscribe</a>
+</nav><section class="home" id="wrapper">
+        <article class="post">
+        <header>
+          <h1>Setting up AWS for Deep Learning</h1>
+          <h2 class="headline">October 10, 2016</h2>
+        </header>
+        <section id="post-body">
+          <p>This short article will show you how to set up an AWS instance based on Ubuntu Server 14.04 LTS. I found that most tutorials out there were either outdated or required unnecessary steps. So this is my attempt to provide a simple guide to configuring a minimal AWS instance.</p><p>We are going to install CUDA v7.5 and cuDNN v5.1, as well as TensorFlow, Theano and Keras.</p><h2 id="creating-instance-and-connecting">Creating instance and connecting</h2><p>We will start with creating a new GPU instance. Use the following AMI:
+
+    </p><blockquote><p>Ubuntu Server 14.04 LTS (HVM), SSD Volume Type - ami-2d39803a</p></blockquote><p>After we have downloaded the access key, we need to change its privileges. For convenience, we are also going to store the instance's host and username in the environment variable <span class="code">AWS</span>:</p><pre class="sourceCode shell"><code>chmod 400 aws-california.pem
+export AWS=ubuntu@ec2-...</code></pre><p>Now you can easily connect to your instance:
+
+    </p><pre class="sourceCode shell"><code>ssh -i aws-california.pem $AWS</code></pre><h2 id="installing-cuda-and-cudnn">Installing CUDA and cuDNN</h2><p>To install CUDA, we will add its official repository, then do a system upgrade and install it along with the Linux sources and some required kernel modules:
+
+    </p><pre class="sourceCode shell"><code>wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64/cuda-repo-ubuntu1404_7.5-18_amd64.deb
+
+sudo dpkg -i cuda-repo-ubuntu1404_7.5-18_amd64.deb
+
+sudo apt-get update
+sudo apt-get upgrade -y
+sudo apt-get install -y cuda linux-source linux-image-extra-virtual</code></pre><p>We need to define the <span class="code">CUDA_HOME</span> environment variable which some frameworks require. Furthermore, we need to amend the user's environment variables for library and binary paths:</p><pre class="sourceCode shell"><code>echo 'export CUDA_HOME=/usr/local/cuda-7.5
+export LD_LIBRARY_PATH=CUDA_HOME/lib64
+export PATH=CUDA_HOMEPATH' &gt;&gt; ~/.bashrc</code></pre><p>The following commands will install cuDNN:
+
+    </p><pre class="sourceCode shell"><code>wget http://developer.download.nvidia.com/compute/redist/cudnn/v5.1/cudnn-7.5-linux-x64-v5.1.tgz
+tar -xzf cudnn-7.5-linux-x64-*.tgz
+sudo cp cuda/lib64/* /usr/local/cuda/lib64
+sudo cp cuda/include/* /usr/local/cuda/include</code></pre><p>Now we can reboot the machine:
+
+    </p><pre class="sourceCode shell"><code>sudo reboot</code></pre><p>As we did a system upgrade earlier and rebooted the machine, <span class="code">uname -r</span> now indicates the current kernel version. We will install the latest Linux headers and finally load the Nvidia kernel module:</p><pre class="sourceCode shell"><code>sudo apt-get install linux-headers-$(uname -r)
+sudo modprobe nvidia</code></pre><p>If your installation was successful, you can run <span class="code">nvidia-smi</span> and it will should show you information about the server's GPU.</p><h2 id="tensorflow-keras-and-theano">TensorFlow, Keras and Theano</h2><p>We are going to use Python 3's <span class="code">pip</span> to install TensorFlow and other Python libraries. The following command will also install some other dependencies that will be needed in future steps:</p><pre class="sourceCode shell"><code>sudo apt-get install python3-pip gfortran subversion libblas-dev liblapack-dev libhdf5-dev</code></pre><p>Installing TensorFlow is straightforward:
+
+    </p><pre class="sourceCode shell"><code>export TF_BINARY_URL=https://storage.googleapis.com/tensorflow/linux/gpu/tensorflow-0.10.0rc0-cp34-cp34m-linux_x86_64.whl
+sudo pip3 install --upgrade $TF_BINARY_URL</code></pre><p>Unfortunately, the Keras' SciPy dependency does not compile when installed via <span class="code">pip</span>. However, it is possible to install SciPy from Ubuntu's repositories:</p><pre class="sourceCode shell"><code>sudo apt-get install python3-scipy</code></pre><p>Keras has a dependency on Theano, which we are going to install implicitly:
+
+    </p><pre class="sourceCode shell"><code>sudo pip3 install keras</code></pre><p>Optionally, you may want to install H5py which is needed to serialise Keras models:
+
+    </p><pre class="sourceCode shell"><code>sudo pip3 install h5py</code></pre><p>Finally, we are going to configure Theano for GPU usage and also enable CNMeM for better performance. Please refer to <a href="http://ankivil.com/making-theano-faster-with-cudnn-and-cnmem-on-windows-10/">this article</a> for more information:</p><pre class="sourceCode shell"><code>echo '[global]
+device = gpu
+floatX = float32
+optimizer = fast_run
+
+[nvcc]
+fastmath=True
+
+[lib]
+cnmem = 1.0
+
+[blas]
+ldflags = -llapack -lblas' &gt; ~/.theanorc</code></pre><h2 id="conclusion">Conclusion</h2><p>Now your machine should be fully set up and you can start training some models.</p><p>If you see any potential for improvements, please feel free to send a pull request by clicking &quot;Edit&quot; below.
+  </p>
+        </section>
+      </article>
+        
+        <footer class="clearfix" id="post-meta">
+          <img src="images/avatar.png" class="avatar"/>
+          <div>
+            <span class="dark">Tim Nieradzik</span>
+            <span>Blog about Scala and Machine Learning</span>
+          </div>
+          <section id="sharing">
+	<a id="edit" class="edit" href="https://github.com/tindzk/blog/edit/master/articles/2016-10-04-aws-deep-learning.txt"><span class="icon-pencil"> Edit</span></a>
+	<a id="twitter" class="twitter" href="https://twitter.com/intent/tweet?text=http://nieradzik.me/aws-deep-learning.html - Setting up AWS for Deep Learning by @timnieradzik"><span class="icon-twitter"> Tweet</span></a>
+</section>
+        </footer>
+        <p class="small">Generated with <a href="http://github.com/MetaStack-pl/MetaDocs">MetaDocs v0.1.2-SNAPSHOT</a></p>
+      </section>
+          <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script><script src="js/main.js"></script><script src="js/highlight.js"></script>
+          <script>hljs.initHighlightingOnLoad();</script>
+        </body>
+      </html>
