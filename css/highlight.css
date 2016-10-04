@@ -3,7 +3,8 @@
 */
 
 .hljs {
-  display: block;
+  white-space: pre;
+  /*display: block;*/
   overflow-x: auto;
   /*padding: 0.5em;*/
   background: #272b2d;
