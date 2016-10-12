@@ -1,0 +1,124 @@
+<!DOCTYPE html><html lang="en-GB">
+        <head>
+          <title>tindzk's blog - Implementing functors in ADTs</title>
+          <meta charset="utf-8"/>
+          <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible"/>
+          <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+          <meta content="MetaDocs v0.1.2-SNAPSHOT" name="generator"/>
+          <link href="images/favicon.ico" rel="shortcut icon"/>
+          <link href="posts.xml" title="tindzk's blog" type="application/rss+xml" rel="alternate"/>
+          <link href="css/style.css" type="text/css" rel="stylesheet"/><link href="css/highlight.css" type="text/css" rel="stylesheet"/>
+        </head>
+
+        <body>
+          <nav class="main-nav">
+    <a href="index.html" id="index">Index </a>
+    <a href="http://about.me/tim.nieradzik">About </a>
+    <a href="http://github.com/tindzk">GitHub </a>
+    <a href="posts.xml" class="cta">Subscribe</a>
+</nav><section class="home" id="wrapper">
+        <article class="post">
+        <header>
+          <h1>Implementing functors in ADTs</h1>
+          <h2 class="headline">October 12, 2016</h2>
+        </header>
+        <section id="post-body">
+          <h2 id="motivation">Motivation</h2><p>It is a common problem to define <a href="https://en.wikipedia.org/wiki/Algebraic_data_type">Algebraic Data Types</a> (ADTs). To prevent duplication, shared functionality should be ideally kept in base <span class="code">trait</span>s. Oftentimes, a problem arises that in the base <span class="code">trait</span> we do not know the child type the function is called on.</p><p>In other words, we want to be able to implement operations such as <span class="code">map()</span> in terms of a functor:</p><pre class="sourceCode scala"><code data-lang="scala">trait F[A] {
+  def map[B](f: A =&gt; B): F[B]
+}</code></pre><p>In this article, I am going to outline different ways how to solve this particular problem in Scala.
+  </p><h2 id="contravariance">Contravariance</h2><p>Consider a simple binary tree:
+    </p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Tree
+case class Leaf(value: Int) extends Tree
+case class Branch(left: Tree, right: Tree) extends Tree
+
+Branch(Leaf(1), Branch(Leaf(2), Leaf(3)))</code></pre><p>We are going to leverage the fact that functions are contravariant in their return types. Let us extend our ADT by a <span class="code">map()</span> function:</p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Tree {
+  /** Recursively apply `f` to all children */
+  def map(f: Tree =&gt; Tree): Tree
+}
+case class Leaf(value: Int) extends Tree {
+  def map(f: Tree =&gt; Tree): Leaf = this
+}
+case class Branch(left: Tree, right: Tree) extends Tree {
+  def map(f: Tree =&gt; Tree): Branch = Branch(f(left).map(f), f(right).map(f))
+}
+
+val tree = Branch(Leaf(1), Branch(Leaf(2), Leaf(3)))
+tree.map(identity): Branch</code></pre><p>In the base <span class="code">trait</span> we defined the function prototype, and overrode this function with the return types of the actual child classes. Thanks to contravariance <span class="code">map()</span> returns <span class="code">Leaf</span> or <span class="code">Branch</span>, respectively.</p><h2 id="type-parameters">Type parameters</h2><p>What if our ADT is a little more complicated and has several nested branch types with shared functionality? Let us consider a type-safe representation of HTML, where tags like <span class="code">div</span> and <span class="code">b</span> are represented as separate types:</p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Node {
+  def map(f: Node =&gt; Node): Node
+}
+case class Text(value: String) extends Node {
+  def map(f: Node =&gt; Node): Text = this
+}
+sealed trait Tag extends Node {
+  def children: Seq[Node]
+  def copy(children: Seq[Node]): Tag
+  def map(f: Node =&gt; Node): Tag = copy(children.map(f(_).map(f)))
+}
+case class Div(id: Option[String], children: Node*) extends Tag {
+  def copy(children: Seq[Node]): Div = Div(id, children: _*)
+}
+case class B(children: Node*) extends Tag {
+  def copy(children: Seq[Node]): B = B(children: _*)
+}
+
+val div = Div(None, B(Text(&quot;Hello&quot;)))
+div.map(identity): Tag</code></pre><p>We defined a <span class="code">trait Tag</span> that defines functions available on all tag nodes. Hereby, we can keep our tag classes succinct. But it comes at the price that the return type of <span class="code">copy()</span> does not get &quot;propagated&quot; to <span class="code">map()</span>. Therefore, <span class="code">map()</span> returns <span class="code">Tag</span> when called on any tag node.</p><p>As in our example where we provide tag-specific attributes, this turns out to be a severe limitation. For example, <span class="code">id</span> could not be accessed in this example on the return value of <span class="code">map</span>.</p><p>To remedy that our type signature does not exhibit the same type signature of a functor, we could attempt to solve it by adding a type parameter to the base <span class="code">trait</span>:</p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Node[T] {
+  def map(f: Node[_] =&gt; Node[_]): T
+}
+case class Text(value: String) extends Node[Text] {
+  def map(f: Node[_] =&gt; Node[_]): Text = this
+}
+sealed trait Tag[T &lt;: Tag[_]] extends Node[T] {
+  def children: Seq[Node[_]]
+  def copy(children: Seq[Node[_]]): T
+  def map(f: Node[_] =&gt; Node[_]): T =
+    copy(children.map(f(_).map(f).asInstanceOf[Node[_]]))
+}
+case class Div(id: Option[String], children: Node[_]*) extends Tag[Div] {
+  def copy(children: Seq[Node[_]]): Div = Div(id, children: _*)
+}
+
+val div = Div(None, Text(&quot;Hello&quot;))
+val mapped: Div = div.map(identity)</code></pre><p>While it works as expected, you see that our solution got unwieldy, requiring many wildcards and even type casts.
+  </p><h2 id="type-members">Type members</h2><p>Luckily, Scala provides us with <span class="code">type</span> members a better alternative:</p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Node {
+  type T &lt;: Node
+  def map(f: Node =&gt; Node): T
+}
+case class Text(value: String) extends Node {
+  override type T = Text
+  def map(f: Node =&gt; Node): Text = this
+}
+sealed trait Tag extends Node {
+  override type T &lt;: Tag
+  def children: Seq[Node]
+  def copy(children: Seq[Node]): T
+  def map(f: Node =&gt; Node): T = copy(children.map(f(_).map(f)))
+}
+case class Div(id: Option[String], children: Node*) extends Tag {
+  override type T = Div
+  def copy(children: Seq[Node]): Div = Div(id, children: _*)
+}
+
+val div = Div(None, Text(&quot;Hello&quot;))
+div.map(identity): Div</code></pre><p>It still works the same, but is a much more elegant solution than type parameters.</p><p>One caveat: We cannot override type <span class="code">T</span> in <span class="code">Tag</span> with a concrete type, otherwise the return type of <span class="code">copy()</span> and <span class="code">map</span> will be fixed and cannot be changed in child classes. However, we can refine the type constraint on <span class="code">T</span>, which is what we have done in our solution with <span class="code">override type T &lt;: Tag</span>.</p><h2 id="examples">Examples</h2><p>We used the same technique in MetaWeb to provide type-safe bindings for HTML. See <a href="https://github.com/MetaStack-pl/MetaWeb/blob/master/core/shared/src/main/scala/pl/metastack/metaweb/tree/Node.scala">this file</a> for our tree implementation.</p><h2 id="conclusion-1">Conclusion</h2><p>We have seen a couple of ways to implement functors in ADTs. Whenever possible, try to make use of Scala's contravariance property. If your ADT is more complicated than that, type parameters are the preferred solution.</p><p>In a follow-up article, I am going to talk about path-dependent types and motivate them with real-world scenarios.
+  </p>
+        </section>
+      </article>
+        
+        <footer class="clearfix" id="post-meta">
+          <img src="images/avatar.png" class="avatar"/>
+          <div>
+            <span class="dark">Tim Nieradzik</span>
+            <span>Blog about Scala and Machine Learning</span>
+          </div>
+          <section id="sharing">
+	<a id="edit" class="edit" href="https://github.com/tindzk/blog/edit/master/articles/2016-10-12-functor-adts.txt"><span class="icon-pencil"> Edit</span></a>
+	<a id="twitter" class="twitter" href="https://twitter.com/intent/tweet?text=http://nieradzik.me/functor-adts.html - Implementing functors in ADTs by @timnieradzik"><span class="icon-twitter"> Tweet</span></a>
+</section>
+        </footer>
+        <p class="small">Generated with <a href="http://github.com/MetaStack-pl/MetaDocs">MetaDocs v0.1.2-SNAPSHOT</a></p>
+      </section>
+          <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script><script src="js/main.js"></script><script src="js/highlight.js"></script>
+          <script>hljs.initHighlightingOnLoad();</script>
+        </body>
+      </html>
