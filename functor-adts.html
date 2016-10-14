@@ -91,8 +91,7 @@ case class Div(id: Option[String],
 }
 
 val div = Div(None, Text(&quot;Hello&quot;))
-val mapped: Div = div.map(identity)</code></pre><p>While it works as expected, you see that our solution got unwieldy, requiring many wildcards and even type casts.
-  </p><h2 id="type-members">Type members</h2><p>Luckily, Scala provides us with <span class="code">type</span> members a better alternative:</p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Node {
+val mapped: Div = div.map(identity)</code></pre><p>While it works as expected, you see that our solution got unwieldy, requiring many wildcards and even type casts.</p><p>This approach is also called <i>F-bounded type polymorphism</i>. Please see <a href="http://tpolecat.github.io/2015/04/29/f-bounds.html">this</a> article for more information.</p><h2 id="type-members">Type members</h2><p>Luckily, Scala provides us with <span class="code">type</span> members a better alternative:</p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Node {
   type T &lt;: Node
   def map(f: Node =&gt; Node): T
 }
@@ -115,7 +114,7 @@ case class Div(id: Option[String],
 }
 
 val div = Div(None, Text(&quot;Hello&quot;))
-div.map(identity): Div</code></pre><p>It still works the same, but is a much more elegant solution than type parameters.</p><p>One caveat: We cannot override type <span class="code">T</span> in <span class="code">Tag</span> with a concrete type, otherwise the return type of <span class="code">withChildren()</span> and <span class="code">map</span> will be fixed and cannot be changed in child classes. However, we can refine the type constraint on <span class="code">T</span>, which is what we have done in our solution with <span class="code">override type T &lt;: Tag</span>.</p><h2 id="thistype">this.type</h2><p>An even easier solution I only recently learned would be to use the type <span class="code">this.type</span>:</p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Node {
+div.map(identity): Div</code></pre><p>It still works the same, but is a much more elegant solution than type parameters.</p><p>One caveat: We cannot override type <span class="code">T</span> in <span class="code">Tag</span> with a concrete type, otherwise the return type of <span class="code">withChildren()</span> and <span class="code">map</span> will be fixed and cannot be changed in child classes. However, we can refine the type constraint on <span class="code">T</span>, which is what we have done in our solution with <span class="code">override type T &lt;: Tag</span>.</p><h2 id="thistype">this.type</h2><p>An even easier solution I only recently learned about would be to use the type <span class="code">this.type</span>:</p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Node {
   def map(f: Node =&gt; Node): this.type
 }
 case class Text(value: String) extends Node {
