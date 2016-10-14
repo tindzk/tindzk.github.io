@@ -8,8 +8,8 @@
           <dc:creator>Tim Nieradzik</dc:creator>
           <dc:language>en-GB</dc:language>
           <item>
-          <title>Implementing functors in ADTs</title>
-          <description>Using contravariance, type parameters and type members to implement a functor in ADTs</description>
+          <title>Returning call-site class type in ADTs</title>
+          <description>Review of Scala language features to return a call-site in ADTs</description>
           <pubDate>Wed, 12 Oct 2016 00:00:00 +0300</pubDate>
           <link>http://nieradzik.me/functor-adts.html</link>
           <guid isPermaLink="true">http://nieradzik.me/functor-adts.html</guid>
