@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="en-GB">
         <head>
-          <title>tindzk's blog - Returning call-site class type in ADTs</title>
+          <title>tindzk's blog - Call site type polymorphism</title>
           <meta charset="utf-8"/>
           <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible"/>
           <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
@@ -19,23 +19,23 @@
 </nav><section class="home" id="wrapper">
         <article class="post">
         <header>
-          <h1>Returning call-site class type in ADTs</h1>
+          <h1>Call site type polymorphism</h1>
           <h2 class="headline">October 12, 2016</h2>
         </header>
         <section id="post-body">
-          <h2 id="motivation">Motivation</h2><p>It is a common problem to define <a href="https://en.wikipedia.org/wiki/Algebraic_data_type">Algebraic Data Types</a> (ADTs). To prevent duplication, shared functionality should be ideally kept in base <span class="code">trait</span>s. Oftentimes, a problem arises that in the base <span class="code">trait</span> we do not know the child type the function is called on:</p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Base {
+          <h2 id="motivation">Motivation</h2><p>It is a common problem to define class hierarchies. To prevent duplication, shared functionality should be ideally kept in base <span class="code">trait</span>s. Oftentimes, a problem arises that in the base <span class="code">trait</span> we do not know the return type of a child function:</p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Base {
   def change: Base
 }
 case class Child() extends Base {
   override def change: Base = this
 }
 
-Child().change: Base</code></pre><p>In other words, for a class <span class="code">F[_]</span> we want to define methods in its base <span class="code">trait</span>. These methods should have the return type <span class="code">F[_]</span>. In this article, I am going to outline different ways how to solve this particular problem in Scala.</p><h2 id="contravariance">Contravariance</h2><p>Consider a simple binary tree:
+Child().change: Base</code></pre><p>In other words, for a class <span class="code">F</span> we want to define methods in its base <span class="code">trait</span>. These methods should have the return type <span class="code">F</span>. In this article, I am going to outline different ways how to solve this particular problem in Scala.</p><h2 id="covariance">Covariance</h2><p>Consider a simple binary tree:
     </p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Tree
 case class Leaf(value: Int) extends Tree
 case class Branch(left: Tree, right: Tree) extends Tree
 
-Branch(Leaf(1), Branch(Leaf(2), Leaf(3)))</code></pre><p>We are going to leverage the fact that functions are contravariant in their return types. Let us extend our ADT by a <span class="code">map()</span> function:</p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Tree {
+Branch(Leaf(1), Branch(Leaf(2), Leaf(3)))</code></pre><p>We are going to leverage the fact that functions are covariant in their return types. Let us extend our hierarchy by a <span class="code">map()</span> function:</p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Tree {
   /** Recursively apply `f` to all children */
   def map(f: Tree =&gt; Tree): Tree
 }
@@ -48,7 +48,7 @@ case class Branch(left: Tree, right: Tree) extends Tree {
 }
 
 val tree = Branch(Leaf(1), Branch(Leaf(2), Leaf(3)))
-tree.map(identity): Branch</code></pre><p>In the base <span class="code">trait</span> we defined the function prototype, and overrode this function with the return types of the actual child classes. Thanks to contravariance <span class="code">map()</span> returns <span class="code">Leaf</span> or <span class="code">Branch</span>, respectively.</p><h2 id="type-parameters">Type parameters</h2><p>What if our ADT is a little more complicated and has several nested branch types with shared functionality? Let us consider a type-safe representation of HTML, where tags like <span class="code">div</span> and <span class="code">b</span> are represented as separate types:</p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Node {
+tree.map(identity): Branch</code></pre><p>In the base <span class="code">trait</span> we defined the function prototype, and overrode this function with the return types of the actual child classes. Thanks to covariance <span class="code">map()</span> returns <span class="code">Leaf</span> or <span class="code">Branch</span>, respectively.</p><h2 id="type-parameters">Type parameters</h2><p>What if our hierarchy is a little more complicated and has several nested branch types with shared functionality? Let us consider a type-safe representation of HTML, where tags like <span class="code">div</span> and <span class="code">b</span> are represented as separate types:</p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Node {
   def map(f: Node =&gt; Node): Node
 }
 case class Text(value: String) extends Node {
@@ -91,7 +91,7 @@ case class Div(id: Option[String],
 }
 
 val div = Div(None, Text(&quot;Hello&quot;))
-val mapped: Div = div.map(identity)</code></pre><p>While it works as expected, you see that our solution got unwieldy, requiring many wildcards and even type casts.</p><p>This approach is also called <i>F-bounded type polymorphism</i>. Please see <a href="http://tpolecat.github.io/2015/04/29/f-bounds.html">this</a> article for more information.</p><h2 id="type-members">Type members</h2><p>Luckily, Scala provides us with <span class="code">type</span> members a better alternative:</p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Node {
+val mapped: Div = div.map(identity)</code></pre><p>While it works as expected, you see that our solution got unwieldy, requiring many wildcards and even type casts.</p><p>This approach is also called <i>F-bounded type polymorphism</i>. You can find more information in <a href="http://tpolecat.github.io/2015/04/29/f-bounds.html">this article</a>.</p><h2 id="type-members">Type members</h2><p>Luckily, Scala provides us with <span class="code">type</span> members a better alternative:</p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Node {
   type T &lt;: Node
   def map(f: Node =&gt; Node): T
 }
@@ -133,7 +133,7 @@ case class Div(id: Option[String],
 }
 
 val div = Div(None, Text(&quot;Hello&quot;))
-div.map(identity): Div</code></pre><p>The only downside to the previous approach is that it requires a type cast because the function is expected to return <span class="code">this</span>.</p><h2 id="examples">Examples</h2><p>We used the same technique in MetaWeb to provide type-safe bindings for HTML. See <a href="https://github.com/MetaStack-pl/MetaWeb/blob/master/core/shared/src/main/scala/pl/metastack/metaweb/tree/Node.scala">this file</a> for our tree implementation.</p><h2 id="conclusion-1">Conclusion</h2><p>We have seen a couple of ways to use the call-site type in ADTs. Whenever possible, try to make use of Scala's contravariance property. If your ADT is more complicated than that, type parameters or <span class="code">this.type</span> are the preferred solutions.</p><p>In a follow-up article, I am going to talk about path-dependent types and motivate them with real-world scenarios.
+div.map(identity): Div</code></pre><p>The only downside to the previous approach is that it requires a type cast because the function is expected to return <span class="code">this</span>.</p><h2 id="examples">Examples</h2><p>We used the same technique in MetaWeb to provide type-safe bindings for HTML. See <a href="https://github.com/MetaStack-pl/MetaWeb/blob/master/core/shared/src/main/scala/pl/metastack/metaweb/tree/Node.scala">this file</a> for our tree implementation.</p><h2 id="conclusion-1">Conclusion</h2><p>We have seen a couple of ways to use the call site type in hierarchies. Whenever possible, try to make use of Scala's covariance property. If your ADT is more complicated than that, type parameters or <span class="code">this.type</span> are the preferred solutions.</p><p>In a follow-up article, I am going to talk about path-dependent types and motivate them with real-world scenarios.
   </p>
         </section>
       </article>
@@ -145,8 +145,8 @@ div.map(identity): Div</code></pre><p>The only downside to the previous approach
             <span>Blog about Scala and Machine Learning</span>
           </div>
           <section id="sharing">
-	<a id="edit" class="edit" href="https://github.com/tindzk/blog/edit/master/articles/2016-10-12-functor-adts.txt"><span class="icon-pencil"> Edit</span></a>
-	<a id="twitter" class="twitter" href="https://twitter.com/intent/tweet?text=http://nieradzik.me/functor-adts.html - Returning call-site class type in ADTs by @timnieradzik"><span class="icon-twitter"> Tweet</span></a>
+	<a id="edit" class="edit" href="https://github.com/tindzk/blog/edit/master/articles/2016-10-12-type-polymorphism.txt"><span class="icon-pencil"> Edit</span></a>
+	<a id="twitter" class="twitter" href="https://twitter.com/intent/tweet?text=http://nieradzik.me/type-polymorphism.html - Call site type polymorphism by @timnieradzik"><span class="icon-twitter"> Tweet</span></a>
 </section>
         </footer>
         <p class="small">Generated with <a href="http://github.com/MetaStack-pl/MetaDocs">MetaDocs v0.1.2-SNAPSHOT</a></p>

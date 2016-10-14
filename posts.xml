@@ -8,11 +8,11 @@
           <dc:creator>Tim Nieradzik</dc:creator>
           <dc:language>en-GB</dc:language>
           <item>
-          <title>Returning call-site class type in ADTs</title>
-          <description>Review of Scala language features to return a call-site in ADTs</description>
+          <title>Call site type polymorphism</title>
+          <description>Review of Scala language features for call site type polymorphism</description>
           <pubDate>Wed, 12 Oct 2016 00:00:00 +0300</pubDate>
-          <link>http://nieradzik.me/functor-adts.html</link>
-          <guid isPermaLink="true">http://nieradzik.me/functor-adts.html</guid>
+          <link>http://nieradzik.me/type-polymorphism.html</link>
+          <guid isPermaLink="true">http://nieradzik.me/type-polymorphism.html</guid>
         </item><item>
           <title>Setting up AWS for Deep Learning</title>
           <description>Installing CUDA, cuDNN, TensorFlow, Theano and Keras on Ubuntu Server 14.04 LTS</description>
