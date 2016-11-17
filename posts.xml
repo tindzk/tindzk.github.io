@@ -8,21 +8,27 @@
           <dc:creator>Tim Nieradzik</dc:creator>
           <dc:language>en-GB</dc:language>
           <item>
+          <title>Path-dependent types in Scala</title>
+          <description>Use cases for path-dependent types</description>
+          <pubDate>Thu, 17 Nov 2016 00:00:00 +0100</pubDate>
+          <link>http://nieradzik.me/path-dependent-types.html</link>
+          <guid isPermaLink="true">http://nieradzik.me/path-dependent-types.html</guid>
+        </item><item>
           <title>Call site type polymorphism</title>
           <description>Review of Scala language features for call site type polymorphism</description>
-          <pubDate>Wed, 12 Oct 2016 00:00:00 +0300</pubDate>
+          <pubDate>Wed, 12 Oct 2016 00:00:00 +0200</pubDate>
           <link>http://nieradzik.me/type-polymorphism.html</link>
           <guid isPermaLink="true">http://nieradzik.me/type-polymorphism.html</guid>
         </item><item>
           <title>Setting up AWS for Deep Learning</title>
           <description>Installing CUDA, cuDNN, TensorFlow, Theano and Keras on Ubuntu Server 14.04 LTS</description>
-          <pubDate>Tue, 4 Oct 2016 00:00:00 +0300</pubDate>
+          <pubDate>Tue, 4 Oct 2016 00:00:00 +0200</pubDate>
           <link>http://nieradzik.me/aws-deep-learning.html</link>
           <guid isPermaLink="true">http://nieradzik.me/aws-deep-learning.html</guid>
         </item><item>
           <title>Introducing MetaRx</title>
           <description>Reactive data structures</description>
-          <pubDate>Mon, 21 Dec 2015 00:00:00 +0200</pubDate>
+          <pubDate>Mon, 21 Dec 2015 00:00:00 +0100</pubDate>
           <link>http://nieradzik.me/metarx.html</link>
           <guid isPermaLink="true">http://nieradzik.me/metarx.html</guid>
         </item>

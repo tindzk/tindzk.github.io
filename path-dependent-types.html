@@ -1,0 +1,101 @@
+<!DOCTYPE html><html lang="en-GB">
+        <head>
+          <title>tindzk's blog - Path-dependent types in Scala</title>
+          <meta charset="utf-8"/>
+          <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible"/>
+          <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+          <meta content="MetaDocs v0.1.2-SNAPSHOT" name="generator"/>
+          <link href="images/favicon.ico" rel="shortcut icon"/>
+          <link href="posts.xml" title="tindzk's blog" type="application/rss+xml" rel="alternate"/>
+          <link href="css/style.css" type="text/css" rel="stylesheet"/><link href="css/highlight.css" type="text/css" rel="stylesheet"/>
+        </head>
+
+        <body>
+          <nav class="main-nav">
+    <a href="index.html" id="index">Index </a>
+    <a href="http://about.me/tim.nieradzik">About </a>
+    <a href="http://github.com/tindzk">GitHub </a>
+    <a href="http://twitter.com/timnieradzik">Twitter </a>
+    <a href="posts.xml" class="cta">Subscribe</a>
+</nav><section class="home" id="wrapper">
+        <article class="post">
+        <header>
+          <h1>Path-dependent types in Scala</h1>
+          <h2 class="headline">November 17, 2016</h2>
+        </header>
+        <section id="post-body">
+          <p><a href="type-polymorphism.html">Last time</a>, I have shown call site type polymorphism as a use case of type parameters. As an extension, I will discuss how the property of type members being path-dependent can be leveraged in practice.</p><p>As before, we use type parameters to enforce valid uses on the call site. However, now we go a step further and look at them from different angles as to enhance the expressiveness of Scala code.</p><h2 id="definition">Definition</h2><p>In Scala, a path-dependent type is a type member <span class="code">T</span> that is defined in a base <span class="code">trait</span><span class="code">B</span> and is kept uninitialised (regardless of optional type constraints). In a child class <span class="code">C</span>, <span class="code">T</span> is instantiated with a concrete type:</p><pre class="sourceCode scala"><code data-lang="scala">trait B { type T }
+class C extends B { override type T = Int }</code></pre><p><span class="code">(c: C).T</span> is not a path-dependent type, but if you view the base <span class="code">trait</span> instead, <span class="code">(c: B).T</span> would be path-dependent. In other words, path dependence means that a type <span class="code">T</span> of two instances of the same class <span class="code">C</span> would be two distinct types. In the following example <span class="code">c1.T</span> and <span class="code">c2.T</span> would not be path-dependent:</p><pre class="sourceCode scala"><code data-lang="scala">val c1 = new C
+val c2 = new C
+implicitly[c1.T =:= c2.T]  // Type equality holds</code></pre><p>However, if we downcast to the base <span class="code">trait</span>, we lose information about the type initialisation, which makes <span class="code">T</span> path-dependent:</p><pre class="sourceCode scala"><code data-lang="scala">val b1: B = new C
+val b2: B = new C
+implicitly[b1.T =:= b2.T]  // Cannot prove that b1.T =:= b2.T</code></pre><h2 id="ownership">Ownership</h2><p>Expressing ownership on the type level allows us to ensure correct usage of initialised objects in parent-child relationships. Consider a client which can establish and close its connections:
+
+    </p><pre class="sourceCode scala"><code data-lang="scala">trait Client {
+  type Connection
+
+  def connect: Connection
+  def disconnect(connection: Connection): Unit
+}
+
+class ClientOps extends Client {
+  override type Connection = Int
+
+  override def connect: Connection = 42
+  override def disconnect(connection: Connection): Unit = {}
+}
+
+object Client {
+  def apply(): Client = new ClientOps
+}</code></pre><p>First, we create a <span class="code">trait</span> with a type member <span class="code">Connection</span>. It will be returned by <span class="code">connect</span> and can be passed to <span class="code">disconnect</span>. Next, we implement this <span class="code">trait</span>, overriding all of its members. Finally, we provide a companion object, instantiating the implementation, but returning the base <span class="code">trait</span>. Now, you can use it as follows:</p><pre class="sourceCode scala"><code data-lang="scala">val client  = Client()
+val client2 = Client()
+
+val connection = client.connect
+
+client.disconnect(connection)
+client2.disconnect(connection)  // Type mismatch</code></pre><p>As you can see, this pattern enables us restrict the usage of a child to its parent class that instantiated it. As <span class="code">connection</span> has the type <span class="code">client.Connection</span>, it cannot be passed as an argument to <span class="code">client2.disconnect</span> which requires <span class="code">client2.Connection</span>.</p><p>On the other hand, if you were to use <span class="code">ClientOps</span> directly instead of the <span class="code">apply()</span> method of our companion object, <span class="code">Connection</span> would be instantiated and the second <span class="code">disconnect()</span> becomes valid. Therefore, it is advisable to use access modifiers such as <span class="code">private</span>.</p><p>This pattern could be also be used when you have several implementations of the base <span class="code">trait</span>. Let us assume that you want to implement memory allocators in Scala Native. On the type level, you would ensure that the type of a memory region returned by the first allocator is different from the another allocator. This would prevent a segmentation fault, making the error visible during compile time.</p><h2 id="type-mapping">Type mapping</h2><p>The second pattern are type mappings <span class="code">T =&gt; T.M</span> where <span class="code">M</span> is a type member. We consider a function that responds to requests, i.e. we map a request to a response:</p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Request { type R &lt;: Response }
+sealed trait Response
+
+object Response {
+  case class LogIn(hash: Option[String])
+    extends Response
+  case class List(users: Seq[String], pages: Int)
+    extends Response
+}
+
+object Request {
+  case class LogIn(username: String, password: String)
+    extends Request { override type R = Response.LogIn }
+  case class List(page: Int)
+    extends Request { override type R = Response.List  }
+}
+
+def request(req: Request): Future[req.R] = {
+  req match {
+    case Request.LogIn(user, password) =&gt;
+      Future.successful(Response.LogIn(None))
+    case Request.List(l) =&gt;
+      Future.successful(Response.List(List.empty, 1))
+  }
+}.asInstanceOf[Future[req.R]]</code></pre><p>By defining a type member for every request, we can bind a response type to every request. Unfortunately, Scala is not able to infer that all response values in the <span class="code">match</span> are of type <span class="code">req.R</span>. Therefore, a type cast is required.</p><p>This allows us to call <span class="code">request()</span> with a concrete request object and it will return the corresponding response type <span class="code">Future[Response.LogIn]</span>:</p><pre class="sourceCode scala"><code data-lang="scala">val response = request(Request.LogIn(&quot;user&quot;, &quot;pass&quot;))</code></pre><h2 id="conclusion-2">Conclusion</h2><p>In a nutshell, use the ownership pattern when you create a path-dependent value in a parent trait and want to confine all subsequent operations to the parent object. On the other hand, type mappings are especially useful when you want to map a type onto another.</p><p>Path-dependent are an underrated feature of the Scala language. I hope this and the previous article could motivate them with real-world examples.
+  </p>
+        </section>
+      </article>
+        
+        <footer class="clearfix" id="post-meta">
+          <img src="images/avatar.png" class="avatar"/>
+          <div>
+            <span class="dark">Tim Nieradzik</span>
+            <span>Blog about Scala and Machine Learning</span>
+          </div>
+          <section id="sharing">
+	<a id="edit" class="edit" href="https://github.com/tindzk/blog/edit/master/articles/2016-11-17-path-dependent-types.txt"><span class="icon-pencil"> Edit</span></a>
+	<a id="twitter" class="twitter" href="https://twitter.com/intent/tweet?text=http://nieradzik.me/path-dependent-types.html - Path-dependent types in Scala by @timnieradzik"><span class="icon-twitter"> Tweet</span></a>
+</section>
+        </footer>
+        <p class="small">Generated with <a href="http://github.com/MetaStack-pl/MetaDocs">MetaDocs v0.1.2-SNAPSHOT</a></p>
+      </section>
+          <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script><script src="js/main.js"></script><script src="js/highlight.js"></script>
+          <script>hljs.initHighlightingOnLoad();</script>
+        </body>
+      </html>
