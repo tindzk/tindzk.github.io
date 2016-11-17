@@ -70,14 +70,22 @@ object Request {
     extends Request { override type R = Response.List  }
 }
 
-def request(req: Request): Future[req.R] = {
-  req match {
-    case Request.LogIn(user, password) =&gt;
-      Future.successful(Response.LogIn(None))
-    case Request.List(l) =&gt;
-      Future.successful(Response.List(List.empty, 1))
-  }
-}.asInstanceOf[Future[req.R]]</code></pre><p>By defining a type member for every request, we can bind a response type to every request. Unfortunately, Scala is not able to infer that all response values in the <span class="code">match</span> are of type <span class="code">req.R</span>. Therefore, a type cast is required.</p><p>This allows us to call <span class="code">request()</span> with a concrete request object and it will return the corresponding response type <span class="code">Future[Response.LogIn]</span>:</p><pre class="sourceCode scala"><code data-lang="scala">val response = request(Request.LogIn(&quot;user&quot;, &quot;pass&quot;))</code></pre><h2 id="conclusion-2">Conclusion</h2><p>In a nutshell, use the ownership pattern when you create a path-dependent value in a parent trait and want to confine all subsequent operations to the parent object. On the other hand, type mappings are especially useful when you want to map a type onto another.</p><p>Path-dependent are an underrated feature of the Scala language. I hope this and the previous article could motivate them with real-world examples.
+sealed trait Processor[R &lt;: Request] { def apply(req: R): Future[req.R] }
+
+implicit object ProcessorLogIn extends Processor[Request.LogIn] {
+  override def apply(req: Request.LogIn): Future[req.R] =
+    Future.successful(Response.LogIn(None))
+}
+
+implicit object ProcessorList extends Processor[Request.List] {
+  override def apply(req: Request.List): Future[req.R] =
+    Future.successful(Response.List(List.empty, 1))
+}
+
+def request[R &lt;: Request](req: R)(implicit processor: Processor[R]) =
+  processor.apply(req)
+
+val response = request(Request.LogIn(&quot;user&quot;, &quot;pass&quot;))</code></pre><p>By defining a type member for every request, we can bind a response type to every request. Unfortunately, Scala is not able to infer that all response values in the <span class="code">match</span> are of type <span class="code">req.R</span>. Therefore, a type cast is required.</p><p>This allows us to call <span class="code">request()</span> with a concrete request object and it will return the corresponding response type <span class="code">Future[Response.LogIn]</span>:</p><pre class="sourceCode scala"><code data-lang="scala">val response = request(Request.LogIn(&quot;user&quot;, &quot;pass&quot;))</code></pre><h2 id="conclusion-2">Conclusion</h2><p>In a nutshell, use the ownership pattern when you create a path-dependent value in a parent trait and want to confine all subsequent operations to the parent object. On the other hand, type mappings are especially useful when you want to map a type onto another.</p><p>Path-dependent are an underrated feature of the Scala language. I hope this and the previous article could motivate them with real-world examples.
   </p>
         </section>
       </article>
