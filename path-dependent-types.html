@@ -30,7 +30,6 @@ val c2 = new C
 implicitly[c1.T =:= c2.T]  // Type equality holds</code></pre><p>However, if we downcast to the base <span class="code">trait</span>, we lose information about the type initialisation, which makes <span class="code">T</span> path-dependent:</p><pre class="sourceCode scala"><code data-lang="scala">val b1: B = new C
 val b2: B = new C
 implicitly[b1.T =:= b2.T]  // Cannot prove that b1.T =:= b2.T</code></pre><h2 id="ownership">Ownership</h2><p>Expressing ownership on the type level allows us to ensure correct usage of initialised objects in parent-child relationships. Consider a client which can establish and close its connections:
-
     </p><pre class="sourceCode scala"><code data-lang="scala">trait Client {
   type Connection
 
@@ -70,23 +69,41 @@ object Request {
     extends Request { override type R = Response.List  }
 }
 
-sealed trait Processor[R &lt;: Request] {
+sealed trait Service[R &lt;: Request] {
   def apply(req: R): Future[req.R]
 }
 
-implicit object LogInProc extends Processor[Request.LogIn] {
+implicit object LogInSvc extends Service[Request.LogIn] {
   override def apply(req: Request.LogIn): Future[req.R] =
     Future.successful(Response.LogIn(None))
 }
 
-implicit object ListProc extends Processor[Request.List] {
+implicit object ListSvc extends Service[Request.List] {
   override def apply(req: Request.List): Future[req.R] =
     Future.successful(Response.List(List.empty, 1))
 }
 
-def request[R &lt;: Request](req: R)
-                         (implicit proc: Processor[R]) =
-  proc.apply(req)</code></pre><p>By defining a type member for every request, we can implement the <span class="code">Processor</span> type class and bind a response type to every request.</p><p>This allows us to call <span class="code">request()</span> with a concrete request object and it will return the corresponding response type <span class="code">Future[Response.LogIn]</span>:</p><pre class="sourceCode scala"><code data-lang="scala">val response = request(Request.LogIn(&quot;user&quot;, &quot;pass&quot;))</code></pre><h2 id="conclusion-2">Conclusion</h2><p>In a nutshell, use the ownership pattern when you create a path-dependent value in a parent trait and want to confine all subsequent operations to the parent object. On the other hand, type mappings are especially useful when you want to map a type onto another.</p><p>Path-dependent are an underrated feature of the Scala language. I hope this and the previous article could motivate them with real-world examples.
+def request[R &lt;: Request](req: R)(implicit svc: Service[R]) =
+  svc.apply(req)</code></pre><p>By defining a type member for every request, we can implement the <span class="code">Service</span> type class and bind a response type to every request.</p><p>This allows us to call <span class="code">request()</span> with a concrete request object and it will return the corresponding response type <span class="code">Future[Response.LogIn]</span>:</p><pre class="sourceCode scala"><code data-lang="scala">val response = request(Request.LogIn(&quot;user&quot;, &quot;pass&quot;))</code></pre><p>To make this pattern more convenient to use, we use a special notation to access child members (<span class="code">#</span>) which allows us to make the response type in <span class="code">Service</span> a type parameter. This enables us to define a companion object to instantiate services. As a consequence, defining new services becomes much easier:</p><pre class="sourceCode scala"><code data-lang="scala">trait Service[Req &lt;: Request, Resp &lt;: Req#R] {
+  def apply(req: Req): Future[Resp]
+}
+
+object Service {
+  def apply[
+    Req &lt;: Request, Resp &lt;: Req#R
+  ](f: Req =&gt; Future[Resp]): Service[Req, Resp] =
+    new Service[Req, Resp] {
+      override def apply(req: Req): Future[Resp] = f(req)
+    }
+}
+
+implicit val logInSvc = Service { req: Request.LogIn =&gt;
+  Future.successful(Response.LogIn(None))
+}
+
+implicit val listSvc = Service { req: Request.List =&gt;
+  Future.successful(Response.List(List.empty, 1))
+}</code></pre><h2 id="conclusion-2">Conclusion</h2><p>In a nutshell, use the ownership pattern when you create a path-dependent value in a parent trait and want to confine all subsequent operations to the parent object. On the other hand, type mappings are especially useful when you want to map a type onto another.</p><p>Path-dependent are an underrated feature of the Scala language. I hope this and the previous article could motivate them with real-world examples.
   </p>
         </section>
       </article>

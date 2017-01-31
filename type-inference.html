@@ -1,0 +1,62 @@
+<!DOCTYPE html><html lang="en-GB">
+        <head>
+          <title>tindzk's blog - Inferring implicit type parameters</title>
+          <meta charset="utf-8"/>
+          <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible"/>
+          <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+          <meta content="MetaDocs v0.1.2-SNAPSHOT" name="generator"/>
+          <link href="images/favicon.ico" rel="shortcut icon"/>
+          <link href="posts.xml" title="tindzk's blog" type="application/rss+xml" rel="alternate"/>
+          <link href="css/style.css" type="text/css" rel="stylesheet"/><link href="css/highlight.css" type="text/css" rel="stylesheet"/>
+        </head>
+
+        <body>
+          <nav class="main-nav">
+    <a href="index.html" id="index">Index </a>
+    <a href="http://about.me/tim.nieradzik">About </a>
+    <a href="http://github.com/tindzk">GitHub </a>
+    <a href="http://twitter.com/timnieradzik">Twitter </a>
+    <a href="posts.xml" class="cta">Subscribe</a>
+</nav><section class="home" id="wrapper">
+        <article class="post">
+        <header>
+          <h1>Inferring implicit type parameters</h1>
+          <h2 class="headline">January 31, 2017</h2>
+        </header>
+        <section id="post-body">
+          <p>Recently, I was working on <a href="https://github.com/MetaStack-pl/MetaRouter">MetaRouter</a>, a <a href="https://github.com/milessabin/shapeless">Shapeless</a>-based routing library for Scala. I wanted to create a function that takes a type parameter and resolves auxiliary ones via implicits. The function in question looked like this:</p><pre class="sourceCode scala"><code data-lang="scala">def route[T, ROUTE &lt;: HList, Params &lt;: HList]
+  (route: Route[ROUTE])
+  (implicit
+    gen: gen: Generic.Aux[T, Params],
+    map: FlatMapper.Aux[Args.Convert.type, ROUTE, Params]
+  ): MappedRoute[ROUTE, T] = new MappedRoute[ROUTE, T](route)</code></pre><p>To give some context, this function is supposed to ensure that a <span class="code">case class</span> provided as <span class="code">T</span> matches the parameters of a route. The parameters of a route are its placeholders as an <span class="code">HList</span>. For instance, <span class="code">Root / &quot;details&quot; / Arg[Int]</span> has one placeholder which is in the terminal position.</p><p>The user should be able to call this function only by specifying <span class="code">T</span>:</p><pre class="sourceCode scala"><code data-lang="scala">Router.route[Details](Root / &quot;details&quot; / Arg[Int])</code></pre><p>Unfortunately, the above function would require us to also specify <span class="code">ROUTE</span> and <span class="code">Params</span>.</p><p>Poking around the source code of Shapeless I discovered a trick that allows you to bypass this step by creating a helper class with an <span class="code">apply()</span> method:</p><pre class="sourceCode scala"><code data-lang="scala">private[metarouter] class MappedRouterHelper[T] {
+  def apply[ROUTE &lt;: HList, Params &lt;: HList]
+    (route: Route[ROUTE])
+    (implicit
+      gen: Generic.Aux[T, Params],
+      map: FlatMapper.Aux[Args.Convert.type, ROUTE, Params]
+    ): MappedRoute[ROUTE, T] =
+      new MappedRoute[ROUTE, T](route)
+}
+
+def route[T] = new MappedRouterHelper[T]</code></pre><p>When the user calls <span class="code">route[T]</span>, the types of our two <span class="code">HList</span>s are inferred within the <span class="code">apply()</span> call and do not need to be provided by the user.</p>
+        </section>
+      </article>
+        
+        <footer class="clearfix" id="post-meta">
+          <img src="images/avatar.png" class="avatar"/>
+          <div>
+            <span class="dark">Tim Nieradzik</span>
+            <span>Blog about Scala and Machine Learning</span>
+          </div>
+          <section id="sharing">
+	<a id="edit" class="edit" href="https://github.com/tindzk/blog/edit/master/articles/2017-01-31-type-inference.txt"><span class="icon-pencil"> Edit</span></a>
+	<a id="twitter" class="twitter" href="https://twitter.com/intent/tweet?text=http://nieradzik.me/type-inference.html - Inferring implicit type parameters by @timnieradzik"><span class="icon-twitter"> Tweet</span></a>
+</section>
+        </footer>
+        <p class="small">Generated with <a href="http://github.com/MetaStack-pl/MetaDocs">MetaDocs v0.1.2-SNAPSHOT</a></p>
+      </section>
+          <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script><script src="js/main.js"></script><script src="js/highlight.js"></script>
+          <script>hljs.initHighlightingOnLoad();</script>
+        </body>
+      </html>

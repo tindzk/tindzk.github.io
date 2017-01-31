@@ -115,7 +115,21 @@ case class Div(id: Option[String],
 }
 
 val div = Div(None, Text(&quot;Hello&quot;))
-div.map(identity): Div</code></pre><p>It still works the same, but is a much more elegant solution than type parameters.</p><p>One caveat: We cannot override type <span class="code">T</span> in <span class="code">Tag</span> with a concrete type, otherwise the return type of <span class="code">withChildren()</span> and <span class="code">map</span> will be fixed and cannot be changed in child classes. However, we can refine the type constraint on <span class="code">T</span>, which is what we have done in our solution with <span class="code">override type T &lt;: Tag</span>.</p><h2 id="thistype">this.type</h2><p>An even easier solution I only recently learned about would be to use the type <span class="code">this.type</span>:</p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Node {
+div.map(identity): Div</code></pre><p>It still works the same, but is a much more elegant solution than type parameters.</p><p>One caveat: We cannot override type <span class="code">T</span> in <span class="code">Tag</span> with a concrete type, otherwise the return type of <span class="code">withChildren()</span> and <span class="code">map</span> will be fixed and cannot be changed in child classes. However, we can refine the type constraint on <span class="code">T</span>, which is what we have done in our solution with <span class="code">override type T &lt;: Tag</span>.</p><p>Type members also work if our base class is already parameterised. Consider a list type:
+    </p><pre class="sourceCode scala"><code data-lang="scala">trait MySeq[T] {
+  type Child[T] &lt;: MySeq[T]
+  def map[U](f: T =&gt; U): Child[U]
+}
+
+class MyList[T] extends MySeq[T] {
+  override type Child[T] = MyList[T]
+  override def map[U](f: T =&gt; U): Child[U] = new MyList[U]
+}
+
+class MyVector[T] extends MySeq[T] {
+  override type Child[T] = MyVector[T]
+  override def map[U](f: T =&gt; U): Child[U] = new MyVector[U]
+}</code></pre><p>Note that if <span class="code">MySeq[T]</span> was covariant (i.e. <span class="code">trait MySeq[+T]</span>), the compiler requires you to indicate this as well in the <span class="code">type</span> member: <span class="code">type Child[+T] &lt;: MySeq[T]</span>.</p><h2 id="thistype">this.type</h2><p>An even easier solution I only recently learned about would be to use the type <span class="code">this.type</span>:</p><pre class="sourceCode scala"><code data-lang="scala">sealed trait Node {
   def map(f: Node =&gt; Node): this.type
 }
 case class Text(value: String) extends Node {
@@ -134,7 +148,17 @@ case class Div(id: Option[String],
 }
 
 val div = Div(None, Text(&quot;Hello&quot;))
-div.map(identity): Div</code></pre><p>The only downside to the previous approach is that it requires a type cast because the function is expected to return <span class="code">this</span>.</p><h2 id="examples">Examples</h2><p>We used the same technique in MetaWeb to provide type-safe bindings for HTML. See <a href="https://github.com/MetaStack-pl/MetaWeb/blob/master/core/shared/src/main/scala/pl/metastack/metaweb/tree/Node.scala">this file</a> for our tree implementation.</p><h2 id="conclusion-1">Conclusion</h2><p>We have seen a couple of ways to use the call site type in hierarchies. Whenever possible, try to make use of Scala's covariance property. If your ADT is more complicated than that, type parameters or <span class="code">this.type</span> are the preferred solutions.</p><p>In a follow-up article, I am going to talk about path-dependent types and motivate them with real-world scenarios.
+div.map(identity): Div</code></pre><p>There are two downsides to this approach: First, it requires a type cast because the function is expected to return <span class="code">this</span>.</p><p>Second, <span class="code">this.type</span> cannot be parameterised. In the following example, we would expect <span class="code">map()</span> on all children <span class="code">C[T]</span> to return <span class="code">C[U]</span> instead of <span class="code">C[T]</span>:</p><pre class="sourceCode scala"><code data-lang="scala">trait MySeq[T] {
+  def map[U](f: T =&gt; U): this.type
+}
+
+class MyList[T] extends MySeq[T] {
+  override def map[U](f: T =&gt; U): this.type = ???
+}
+
+class MyVector[T] extends MySeq[T] {
+  override def map[U](f: T =&gt; U): this.type = ???
+}</code></pre><p>Unfortunately, the type parameter is implicitly included in <span class="code">this.type</span>, whereby <span class="code">this.type[U]</span> would result in a syntax error.</p><h2 id="examples">Examples</h2><p>We used the same technique in MetaWeb to provide type-safe bindings for HTML. See <a href="https://github.com/MetaStack-pl/MetaWeb/blob/master/core/shared/src/main/scala/pl/metastack/metaweb/tree/Node.scala">this file</a> for our tree implementation.</p><h2 id="conclusion-1">Conclusion</h2><p>We have seen a couple of ways to use the call site type in hierarchies. Whenever possible, try to make use of Scala's covariance property. If your ADT is more complicated than that, type parameters or <span class="code">this.type</span> are the preferred solutions.</p><p>In a follow-up article, I am going to talk about path-dependent types and motivate them with real-world scenarios.
   </p>
         </section>
       </article>
