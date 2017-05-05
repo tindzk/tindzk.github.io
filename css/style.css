@@ -200,9 +200,9 @@ a,
 	transition: all 0.15s ease;
 }
 
-ul 	{ margin:0; padding:0; }
-ul li	{ list-style-type:circle; list-style-position:inside; }
-ol li	{ list-style-position:inside; }
+ul 	{ margin:5px; padding:5px; }
+ul li	{ list-style-position:inside; }
+/*ol li	{ list-style-position:inside; }
 
 /* Set line Height and justify text */
 #post-body, p { line-height:1.7; text-align: justify; }
@@ -610,7 +610,6 @@ h2.month {
 }
 
 #post-list.archive.readmore h3{
-
 	  font: 400 20px "Helvetica Neue", Helvetica,Arial,sans-serif;
 	  margin-bottom: 30px;
 }
@@ -663,4 +662,19 @@ h2.month {
 	.post h2.headline { font-size: 13px; }
 	.post h1 { font-size:24px; }
 	.post h2 { font-size:20px; }
+}
+
+.footnote {
+  vertical-align: super;
+  font-size: 12px;
+}
+
+.footnotes {
+    margin-top: 50px;
+    border-top: 1px solid silver;
+    font-size: 12px;
+}
+
+.footnotes li {
+	margin: 15px;
 }
