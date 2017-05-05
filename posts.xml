@@ -8,6 +8,12 @@
           <dc:creator>Tim Nieradzik</dc:creator>
           <dc:language>en-GB</dc:language>
           <item>
+          <title>Rethinking creativity</title>
+          <description></description>
+          <pubDate>Fri, 5 May 2017 00:00:00 +0000</pubDate>
+          <link>http://nieradzik.me/rethinking-creativity.html</link>
+          <guid isPermaLink="true">http://nieradzik.me/rethinking-creativity.html</guid>
+        </item><item>
           <title>Inferring implicit type parameters</title>
           <description>Using wrapper classes to aid type inference</description>
           <pubDate>Tue, 31 Jan 2017 00:00:00 +0000</pubDate>
